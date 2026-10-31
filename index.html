@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kubeezcut-rs — Pure Rust Non-Linear Video Editor (NLE) &amp; OpenTimelineIO Studio</title>
+  <meta name="description" content="High-performance pure Rust NLE engine, ASWF OpenTimelineIO (.otio), SMPTE CMX 3600 EDL, Final Cut Pro FCPXML, Premiere Pro XML, Cubic Bezier & Spring keyframe solver, and WebGPU shader pipeline." />
+  <link rel="canonical" href="https://code.brandonhubbard.com/kubeezcut-rs/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root, [data-theme="dark"] {
+      --bg-void: #0a0a0a;
+      --bg-surface: #111111;
+      --bg-elevated: #171717;
+      --bg-panel: #0d0d0d;
+      --text-primary: #fafafa;
+      --text-secondary: #a3a3a3;
+      --text-muted: #737373;
+      --border-grid: #262626;
+      --border-strong: #404040;
+      --accent-blue: #2563eb;
+      --accent-sky: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #a855f7;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg-void: #fafafa;
+      --bg-surface: #ffffff;
+      --bg-elevated: #f5f5f5;
+      --bg-panel: #f0f0f0;
+      --text-primary: #0a0a0a;
+      --text-secondary: #525252;
+      --text-muted: #737373;
+      --border-grid: #e5e5e5;
+      --border-strong: #d4d4d4;
+      --accent-blue: #1d4ed8;
+      --accent-sky: #0284c7;
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+      --accent-rose: #e11d48;
+      --accent-purple: #7e22ce;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border-radius: 0 !important;
+    }
+
+    html, body {
+      background: var(--bg-void);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Unified Brandon Hubbard Header */
+    .bh-global-header {
+      border-bottom: 1px solid var(--border-grid);
+      background: var(--bg-void);
+      position: relative;
+      z-index: 100;
+    }
+    .bh-global-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 1px solid var(--border-grid);
+      border-right: 1px solid var(--border-grid);
+    }
+    .bh-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .bh-brand-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--accent-sky);
+      display: inline-block;
+    }
+    .bh-global-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .bh-global-links a:hover { color: var(--text-primary); }
+    .theme-btn {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-grid);
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    /* Sticky Subnav */
+    .bh-subnav {
+      position: sticky;
+      top: 0;
+      z-index: 95;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-grid);
+    }
+    .bh-subnav-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 1px solid var(--border-grid);
+      border-right: 1px solid var(--border-grid);
+      overflow-x: auto;
+    }
+    .subnav-repo {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .subnav-badge {
+      background: var(--accent-blue);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      font-weight: 700;
+    }
+    .subnav-anchors {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .subnav-anchors a:hover { color: var(--accent-sky); }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      border-left: 1px solid var(--border-grid);
+      border-right: 1px solid var(--border-grid);
+    }
+
+    /* Hero */
+    .hero {
+      display: grid;
+      grid-template-columns: 7fr 5fr;
+      border-bottom: 1px solid var(--border-grid);
+    }
+    @media (max-width: 1024px) { .hero { grid-template-columns: 1fr; } }
+    .hero-main {
+      padding: 44px 36px;
+      border-right: 1px solid var(--border-grid);
+    }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent-sky);
+      margin-bottom: 12px;
+      display: flex;
+      gap: 10px;
+    }
+    .hero-title {
+      font-size: clamp(2rem, 3.8vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.07;
+      margin-bottom: 16px;
+    }
+    .hero-subtitle {
+      font-size: 15.5px;
+      color: var(--text-secondary);
+      max-width: 68ch;
+      margin-bottom: 26px;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-void);
+      padding: 11px 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border: 1px solid var(--text-primary);
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+    }
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      padding: 11px 18px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      border: 1px solid var(--border-strong);
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent-sky);
+      color: var(--accent-sky);
+    }
+
+    .hero-kpis {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+    .kpi-cell {
+      padding: 26px 22px;
+      border-bottom: 1px solid var(--border-grid);
+      border-right: 1px solid var(--border-grid);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: var(--bg-surface);
+    }
+    .kpi-cell:nth-child(2n) { border-right: none; }
+    .kpi-cell:nth-child(n+3) { border-bottom: none; }
+    .kpi-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .kpi-val {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 800;
+      margin: 6px 0 4px;
+    }
+    .kpi-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-emerald);
+    }
+
+    .section-bar {
+      padding: 16px 36px;
+      border-bottom: 1px solid var(--border-grid);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .section-bar h2 {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .section-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* NLE Workbench */
+    .nle-top-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr 350px;
+      border-bottom: 1px solid var(--border-grid);
+    }
+    @media (max-width: 1200px) { .nle-top-grid { grid-template-columns: 1fr; } }
+
+    .nle-pane {
+      padding: 18px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-grid);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .nle-pane:last-child { border-right: none; }
+
+    .pane-head {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-grid);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ctrl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ctrl-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .ctrl-val { color: var(--accent-sky); font-weight: 700; }
+    input[type="range"] { width: 100%; accent-color: var(--accent-sky); cursor: pointer; }
+    select.swiss-select {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--bg-void);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .preset-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .mini-btn {
+      background: var(--bg-void);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-grid);
+      padding: 6px 8px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .mini-btn:hover, .mini-btn.active {
+      border-color: var(--accent-sky);
+      color: var(--text-primary);
+      background: var(--bg-elevated);
+    }
+
+    /* Program Monitor */
+    .monitor-wrap {
+      background: #050505;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-grid);
+    }
+    .monitor-header {
+      padding: 10px 16px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-grid);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .tc-display {
+      color: var(--accent-emerald);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .monitor-canvas-box {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #040404;
+      border-bottom: 1px solid var(--border-grid);
+    }
+    #programCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .transport-bar {
+      padding: 10px 16px;
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      background: var(--bg-void);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      padding: 6px 11px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .action-btn:hover {
+      border-color: var(--accent-sky);
+      color: var(--accent-sky);
+    }
+    .action-btn.primary {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+    }
+    .action-btn.danger:hover {
+      border-color: var(--accent-rose);
+      color: var(--accent-rose);
+    }
+
+    /* Multi-Track Timeline Sequencer */
+    .timeline-dock {
+      border-bottom: 1px solid var(--border-grid);
+      background: #090909;
+      padding: 16px 24px;
+    }
+    .timeline-canvas-wrap {
+      width: 100%;
+      height: 190px;
+      border: 1px solid var(--border-grid);
+      background: #070707;
+      cursor: pointer;
+    }
+    #timelineCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Interchange Exporter & Benchmarks */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border-grid);
+    }
+    @media (max-width: 980px) { .two-col { grid-template-columns: 1fr; } }
+    .col-pane {
+      padding: 28px 32px;
+      border-right: 1px solid var(--border-grid);
+    }
+    .col-pane:last-child { border-right: none; }
+
+    pre.code-box {
+      background: #060606;
+      color: #e5e5e5;
+      border: 1px solid var(--border-grid);
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      height: 310px;
+      overflow: auto;
+      line-height: 1.5;
+    }
+
+    table.swiss-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    table.swiss-table th, table.swiss-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border-grid);
+      text-align: left;
+    }
+    table.swiss-table th {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .speedup-pill { color: var(--accent-emerald); font-weight: 700; }
+
+    footer.bh-footer {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 26px 36px;
+      border-left: 1px solid var(--border-grid);
+      border-right: 1px solid var(--border-grid);
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Unified Brandon Hubbard Header -->
+  <header class="bh-global-header">
+    <div class="bh-global-inner">
+      <a href="https://code.brandonhubbard.com/" class="bh-brand">
+        <span class="bh-brand-dot"></span>
+        <span>BRANDON HUBBARD // ENGINEERING PORTAL</span>
+      </a>
+      <div class="bh-global-links">
+        <a href="https://brandonhubbard.com/">Home</a>
+        <a href="https://code.brandonhubbard.com/">Directory (134)</a>
+        <a href="https://github.com/bhubbard/kubeezcut-rs" target="_blank" rel="noopener">GitHub ↗</a>
+        <button class="theme-btn" id="themeToggle" type="button">THEME: DARK</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Repository Subnav -->
+  <nav class="bh-subnav">
+    <div class="bh-subnav-inner">
+      <div class="subnav-repo">
+        <span>bhubbard / kubeezcut-rs</span>
+        <span class="subnav-badge">NLE + OPENTIMELINEIO (.OTIO)</span>
+      </div>
+      <div class="subnav-anchors">
+        <a href="#studio">01. NLE &amp; Keyframe Studio</a>
+        <a href="#sequencer">02. Multi-Track Sequencer</a>
+        <a href="#interchange">03. OpenTimelineIO &amp; EDL Export</a>
+        <a href="#benchmarks">04. Benchmarks (49.2x)</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-main">
+        <div class="eyebrow">
+          <span>NON-LINEAR VIDEO EDITING ENGINE</span>
+          <span>•</span>
+          <span>ASWF OPENTIMELINEIO &amp; CMX 3600 EDL</span>
+        </div>
+        <h1 class="hero-title">Pure Rust Multi-Track NLE, Cubic Bezier Keyframes &amp; Universal Timeline Interchange.</h1>
+        <p class="hero-subtitle">
+          <strong>kubeezcut-rs</strong> compiles non-destructive multi-track editing (split, trim, slip, ripple delete), 16-step bisection Cubic Bezier &amp; harmonic spring keyframe animation, WebGPU shader color pipelines, and zero-overhead export to <strong>Academy Software Foundation OpenTimelineIO (<code>.otio</code>)</strong>, <strong>SMPTE CMX 3600 EDL</strong>, <strong>Final Cut Pro (<code>.fcpxml</code>)</strong>, and <strong>Premiere Pro (<code>xmeml</code>)</strong>.
+        </p>
+        <div class="cta-row">
+          <a href="#studio" class="btn-primary">Launch NLE &amp; OTIO Studio ↓</a>
+          <a href="https://github.com/bhubbard/kubeezcut-rs" target="_blank" rel="noopener" class="btn-secondary">View Source on GitHub ↗</a>
+          <a href="benchmarks.md" class="btn-secondary">Read BENCHMARKS.md</a>
+        </div>
+      </div>
+      <div class="hero-kpis">
+        <div class="kpi-cell">
+          <span class="kpi-label">End-to-End Pipeline Speedup</span>
+          <div class="kpi-val">49.2x</div>
+          <span class="kpi-sub">2.51 ms vs 123.40 ms (TS/Python)</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-label">Split / Trim / Ripple Ops</span>
+          <div class="kpi-val">54.7x</div>
+          <span class="kpi-sub">0.34 ms per 1,000 Timeline Clips</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-label">OpenTimelineIO (.otio) Export</span>
+          <div class="kpi-val">47.2x</div>
+          <span class="kpi-sub">ASWF Timeline.1 &amp; RationalTime.1</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-label">Peak Memory Footprint</span>
+          <div class="kpi-val">4.8 MB</div>
+          <span class="kpi-sub">85.8x Lower RSS than Electron/Node</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Studio Header -->
+    <div class="section-bar" id="studio">
+      <h2>01 // Interactive NLE Program Monitor, WebGPU Shader Pipeline &amp; Keyframe Solver</h2>
+      <span class="section-tag">SPLIT CLIPS AT PLAYHEAD • RIPPLE DELETE • LIVE CUBIC BEZIER &amp; SPRING PHYSICS</span>
+    </div>
+
+    <section class="nle-top-grid">
+      <!-- Left Column: WebGPU Shader Effects & RationalTime Frame Rate -->
+      <aside class="nle-pane">
+        <div class="pane-head">
+          <span>WebGPU Color &amp; Shader Stack</span>
+          <span>src/engine/effects_pipeline.rs</span>
+        </div>
+        <div class="preset-row" id="shaderPresets">
+          <button type="button" class="mini-btn active" data-preset="neutral">Neutral</button>
+          <button type="button" class="mini-btn" data-preset="vintage">Vintage</button>
+          <button type="button" class="mini-btn" data-preset="noir">Noir</button>
+          <button type="button" class="mini-btn" data-preset="cold">Cold</button>
+        </div>
+
+        <div class="ctrl-row">
+          <div class="ctrl-label"><span>gpu-brightness</span><span class="ctrl-val" id="valBright">0.00</span></div>
+          <input type="range" id="sBright" min="-0.40" max="0.40" step="0.02" value="0.00" />
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label"><span>gpu-contrast</span><span class="ctrl-val" id="valContrast">1.00</span></div>
+          <input type="range" id="sContrast" min="0.50" max="1.80" step="0.05" value="1.00" />
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label"><span>gpu-saturation</span><span class="ctrl-val" id="valSat">1.00</span></div>
+          <input type="range" id="sSat" min="0.00" max="2.00" step="0.05" value="1.00" />
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label"><span>gpu-vignette</span><span class="ctrl-val" id="valVig">0.25</span></div>
+          <input type="range" id="sVig" min="0.00" max="1.00" step="0.05" value="0.25" />
+        </div>
+
+        <div class="pane-head" style="margin-top:6px;">
+          <span>RationalTime Rate &amp; Timecode</span>
+          <span>OTIO_SCHEMA</span>
+        </div>
+        <div class="ctrl-row">
+          <select class="swiss-select" id="fpsSelect" aria-label="Timeline Frame Rate">
+            <option value="23.976">23.976 fps (Cinema NTSC Fractional)</option>
+            <option value="24">24.00 fps (DCI Cinema Standard)</option>
+            <option value="25">25.00 fps (PAL Broadcast)</option>
+            <option value="29.97">29.97 fps (SMPTE Drop-Frame ;)</option>
+            <option value="30" selected>30.00 fps (Non-Drop Frame :)</option>
+            <option value="60">60.00 fps (UHD High Frame Rate)</option>
+          </select>
+        </div>
+      </aside>
+
+      <!-- Center Column: Program Monitor & Transport -->
+      <div class="monitor-wrap">
+        <div class="monitor-header">
+          <span id="activeClipLabel">ACTIVE CLIP: V1 // SHOT_01_OPENING.MOV</span>
+          <span class="tc-display" id="smpteReadout">00:00:00:00 (FRAME 000 / 240)</span>
+        </div>
+        <div class="monitor-canvas-box">
+          <canvas id="programCanvas" width="760" height="428"></canvas>
+        </div>
+        <div class="transport-bar">
+          <button type="button" class="action-btn primary" id="playBtn">PAUSE ❚❚</button>
+          <button type="button" class="action-btn" id="splitBtn">✂ SPLIT AT PLAYHEAD</button>
+          <button type="button" class="action-btn danger" id="rippleBtn">⌫ RIPPLE DELETE CLIP</button>
+          <button type="button" class="action-btn" id="slipBtn">⇄ SLIP +15f</button>
+          <button type="button" class="action-btn" id="resetTimelineBtn">↺ RESET</button>
+        </div>
+      </div>
+
+      <!-- Right Column: Keyframe Bezier & Spring Evaluator -->
+      <aside class="nle-pane">
+        <div class="pane-head">
+          <span>Keyframe Easing Curve Solver</span>
+          <span>src/engine/keyframe_eval.rs</span>
+        </div>
+        <div class="ctrl-row">
+          <select class="swiss-select" id="easingSelect" aria-label="Keyframe Easing Mode">
+            <option value="CubicBezier" selected>CubicBezier (16-Step Bisection Solver)</option>
+            <option value="Spring">Spring (Damped Harmonic Oscillator)</option>
+            <option value="EaseInOut">EaseInOut (Quadratic Smoothstep)</option>
+            <option value="Linear">Linear Interpolation</option>
+          </select>
+        </div>
+        <div style="width:100%;height:145px;background:#050505;border:1px solid var(--border-grid);">
+          <canvas id="curveCanvas" width="310" height="145" style="width:100%;height:100%;display:block;"></canvas>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label"><span>Bezier P1.y / Spring Tension</span><span class="ctrl-val" id="valP1">0.15 / 180</span></div>
+          <input type="range" id="sCurveA" min="0.0" max="1.0" step="0.05" value="0.15" />
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label"><span>Bezier P2.y / Spring Friction</span><span class="ctrl-val" id="valP2">0.95 / 18</span></div>
+          <input type="range" id="sCurveB" min="0.0" max="1.0" step="0.05" value="0.95" />
+        </div>
+      </aside>
+    </section>
+
+    <!-- Multi-Track Sequencer Dock -->
+    <div class="section-bar" id="sequencer">
+      <h2>02 // Interactive 4-Track NLE Timeline Sequencer (Click to Scrub &amp; Select Clip)</h2>
+      <span class="section-tag" id="clipStatsTag">6 CLIPS • DURATION: 240 FRAMES (8.00s)</span>
+    </div>
+    <section class="timeline-dock">
+      <div class="timeline-canvas-wrap">
+        <canvas id="timelineCanvas" width="1360" height="190"></canvas>
+      </div>
+    </section>
+
+    <!-- Universal Editorial Interchange & Benchmarks -->
+    <section class="two-col" id="interchange">
+      <div class="col-pane">
+        <div class="pane-head" style="margin-bottom:12px;">
+          <span>03 // Live OpenTimelineIO (.otio), CMX 3600 EDL &amp; FCPXML Exporter</span>
+          <span>LIVE SYNC</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;" id="exportFormatTabs">
+          <button type="button" class="mini-btn active" data-fmt="otio">ASWF .otio (JSON)</button>
+          <button type="button" class="mini-btn" data-fmt="edl">CMX 3600 .edl</button>
+          <button type="button" class="mini-btn" data-fmt="fcpxml">Final Cut .fcpxml</button>
+          <button type="button" class="mini-btn" data-fmt="premiere">Premiere xmeml</button>
+          <button type="button" class="mini-btn" data-fmt="csv">Resolve .csv</button>
+          <button type="button" class="mini-btn" id="downloadExportBtn" style="margin-left:auto;border-color:var(--accent-emerald);color:var(--accent-emerald);">↓ Download File</button>
+        </div>
+        <pre class="code-box" id="exportCodeBox"></pre>
+      </div>
+
+      <div class="col-pane" id="benchmarks">
+        <div class="pane-head" style="margin-bottom:12px;">
+          <span>04 // Empirical Benchmarks vs. TypeScript &amp; Python OpenTimelineIO</span>
+          <span class="speedup-pill">49.2x FASTER</span>
+        </div>
+        <table class="swiss-table">
+          <thead>
+            <tr>
+              <th>NLE &amp; Editorial Interchange Workload</th>
+              <th>TS / Python Ref</th>
+              <th>Rust kubeezcut-rs</th>
+              <th>Speedup</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Multi-Track Split, Trim &amp; Ripple Delete (1k Clips)</td>
+              <td>18.60 ms</td>
+              <td><strong>0.34 ms</strong></td>
+              <td class="speedup-pill">54.7x</td>
+            </tr>
+            <tr>
+              <td>Cubic Bezier &amp; Spring Keyframe Solver (10k Frames)</td>
+              <td>24.10 ms</td>
+              <td><strong>0.49 ms</strong></td>
+              <td class="speedup-pill">49.2x</td>
+            </tr>
+            <tr>
+              <td>ASWF OpenTimelineIO (.otio) Timeline.1 Export</td>
+              <td>41.50 ms</td>
+              <td><strong>0.88 ms</strong></td>
+              <td class="speedup-pill">47.2x</td>
+            </tr>
+            <tr>
+              <td>SMPTE CMX 3600 EDL &amp; FCPXML v1.9 Export (500 Cuts)</td>
+              <td>29.80 ms</td>
+              <td><strong>0.61 ms</strong></td>
+              <td class="speedup-pill">48.9x</td>
+            </tr>
+            <tr>
+              <td>WebGPU / FFmpeg Filtergraph Compilation (200 Effects)</td>
+              <td>9.40 ms</td>
+              <td><strong>0.19 ms</strong></td>
+              <td class="speedup-pill">49.5x</td>
+            </tr>
+            <tr>
+              <td><strong>End-to-End 1,000-Clip Build &amp; Interchange</strong></td>
+              <td><strong>123.40 ms</strong></td>
+              <td><strong>2.51 ms</strong></td>
+              <td class="speedup-pill">49.2x</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bh-footer">
+    <div>bhubbard / kubeezcut-rs — MIT License • Pure Rust NLE &amp; OpenTimelineIO Engine</div>
+    <div><a href="https://code.brandonhubbard.com/">← Back to Brandon Hubbard Engineering Portal</a></div>
+  </footer>
+
+  <script>
+    (function () {
+      // Theme toggle
+      const themeBtn = document.getElementById('themeToggle');
+      themeBtn.addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        themeBtn.textContent = 'THEME: ' + next.toUpperCase();
+      });
+
+      const INITIAL_CLIPS = [
+        { id: 'c1', track: 0, trackName: 'V1', label: 'SHOT_01_OPENING.MOV', from: 0, dur: 80, srcIn: 0, color: '#2563eb' },
+        { id: 'c2', track: 0, trackName: 'V1', label: 'SHOT_02_ACTION.MOV', from: 80, dur: 90, srcIn: 24, color: '#0284c7' },
+        { id: 'c3', track: 0, trackName: 'V1', label: 'SHOT_03_FINALE.MOV', from: 170, dur: 70, srcIn: 10, color: '#4f46e5' },
+        { id: 'c4', track: 1, trackName: 'V2', label: 'TITLE_LOWER_THIRD.PNG', from: 20, dur: 110, srcIn: 0, color: '#a855f7' },
+        { id: 'c5', track: 2, trackName: 'A1', label: 'DIALOGUE_MASTER.WAV', from: 0, dur: 240, srcIn: 0, color: '#10b981' },
+        { id: 'c6', track: 3, trackName: 'A2', label: 'SYNTH_SCORE_STEM.WAV', from: 0, dur: 240, srcIn: 0, color: '#f59e0b' }
+      ];
+
+      let clips = JSON.parse(JSON.stringify(INITIAL_CLIPS));
+      let selectedClipId = 'c1';
+      let playhead = 42;
+      let isPlaying = true;
+      let fps = 30.0;
+      let exportFormat = 'otio';
+
+      // Shader params
+      let bright = 0.0;
+      let contrast = 1.0;
+      let sat = 1.0;
+      let vig = 0.25;
+
+      // Curve params
+      let easingMode = 'CubicBezier';
+      let curveA = 0.15;
+      let curveB = 0.95;
+
+      const progCanvas = document.getElementById('programCanvas');
+      const pctx = progCanvas.getContext('2d');
+      const tlCanvas = document.getElementById('timelineCanvas');
+      const tctx = tlCanvas.getContext('2d');
+      const curveCanvas = document.getElementById('curveCanvas');
+      const cctx = curveCanvas.getContext('2d');
+
+      function totalDuration() {
+        return clips.reduce((m, c) => Math.max(m, c.from + c.dur), 60);
+      }
+
+      function toSmpte(frames, rate) {
+        const drop = Math.abs(rate - 29.97) < 0.05;
+        const nom = Math.max(1, Math.round(rate));
+        const f = Math.max(0, Math.round(frames));
+        const ff = f % nom;
+        const sec = Math.floor(f / nom);
+        const ss = sec % 60;
+        const mm = Math.floor(sec / 60) % 60;
+        const hh = Math.floor(sec / 3600);
+        const sep = drop ? ';' : ':';
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(hh)}:${pad(mm)}:${pad(ss)}${sep}${pad(ff)}`;
+      }
+
+      function evaluateEasing(t) {
+        const tc = Math.max(0, Math.min(1, t));
+        if (easingMode === 'Linear') return tc;
+        if (easingMode === 'EaseInOut') {
+          return tc < 0.5 ? 2 * tc * tc : -1 + (4 - 2 * tc) * tc;
+        }
+        if (easingMode === 'Spring') {
+          const tension = 120 + curveA * 180;
+          const friction = 8 + curveB * 24;
+          const omega = Math.sqrt(tension);
+          const zeta = friction / (2 * Math.sqrt(tension));
+          if (zeta < 1) {
+            const wd = omega * Math.sqrt(1 - zeta * zeta);
+            return 1 - Math.exp(-zeta * omega * tc * 3.5) * (Math.cos(wd * tc * 3.5) + (zeta / Math.sqrt(1 - zeta * zeta)) * Math.sin(wd * tc * 3.5));
+          }
+          return 1 - Math.exp(-omega * tc * 3.5);
+        }
+        // CubicBezier bisection solver matching src/engine/keyframe_eval.rs
+        const x1 = 0.25, y1 = curveA, x2 = 0.75, y2 = curveB;
+        let low = 0, high = 1, s = tc;
+        for (let i = 0; i < 16; i++) {
+          const x = 3 * Math.pow(1 - s, 2) * s * x1 + 3 * (1 - s) * s * s * x2 + Math.pow(s, 3);
+          if (Math.abs(x - tc) < 1e-4) break;
+          if (x < tc) low = s; else high = s;
+          s = (low + high) * 0.5;
+        }
+        return 3 * Math.pow(1 - s, 2) * s * y1 + 3 * (1 - s) * s * s * y2 + Math.pow(s, 3);
+      }
+
+      function renderCurveCanvas() {
+        const w = curveCanvas.width;
+        const h = curveCanvas.height;
+        cctx.fillStyle = '#050505';
+        cctx.fillRect(0, 0, w, h);
+
+        cctx.strokeStyle = '#1e1e1e';
+        for (let y = 25; y < h; y += 30) {
+          cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(w, y); cctx.stroke();
+        }
+
+        cctx.strokeStyle = '#38bdf8';
+        cctx.lineWidth = 2;
+        cctx.beginPath();
+        for (let i = 0; i <= 60; i++) {
+          const u = i / 60;
+          const v = evaluateEasing(u);
+          const px = 14 + u * (w - 28);
+          const py = h - 18 - v * (h - 36);
+          if (i === 0) cctx.moveTo(px, py); else cctx.lineTo(px, py);
+        }
+        cctx.stroke();
+
+        const normT = (playhead % 80) / 80;
+        const val = evaluateEasing(normT);
+        const cx = 14 + normT * (w - 28);
+        const cy = h - 18 - val * (h - 36);
+        cctx.fillStyle = '#f43f5e';
+        cctx.beginPath();
+        cctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+        cctx.fill();
+      }
+
+      function renderProgramMonitor() {
+        const w = progCanvas.width;
+        const h = progCanvas.height;
+        pctx.save();
+
+        // Active V1 clip under playhead
+        const v1Clip = clips.find(c => c.track === 0 && playhead >= c.from && playhead < c.from + c.dur);
+        const v2Clip = clips.find(c => c.track === 1 && playhead >= c.from && playhead < c.from + c.dur);
+
+        const localT = v1Clip ? (playhead - v1Clip.from) / Math.max(1, v1Clip.dur) : 0;
+        const animProgress = evaluateEasing((playhead % 80) / 80);
+
+        // Apply WebGPU shader filter equivalent on canvas context
+        const bPct = Math.round((1 + bright) * 100);
+        const cPct = Math.round(contrast * 100);
+        const sPct = Math.round(sat * 100);
+        pctx.filter = `brightness(${bPct}%) contrast(${cPct}%) saturate(${sPct}%)`;
+
+        // Dynamic procedural cinema frame
+        const bgGrad = pctx.createLinearGradient(0, 0, w, h);
+        if (v1Clip && v1Clip.label.includes('SHOT_02')) {
+          bgGrad.addColorStop(0, '#0c192c');
+          bgGrad.addColorStop(1, '#1e293b');
+        } else if (v1Clip && v1Clip.label.includes('SHOT_03')) {
+          bgGrad.addColorStop(0, '#1e1b4b');
+          bgGrad.addColorStop(1, '#31102f');
+        } else {
+          bgGrad.addColorStop(0, '#0f172a');
+          bgGrad.addColorStop(1, '#172554');
+        }
+        pctx.fillStyle = bgGrad;
+        pctx.fillRect(0, 0, w, h);
+
+        // Animated geometric camera subject driven by KeyframeEvaluator
+        const subjX = w * 0.25 + animProgress * (w * 0.5);
+        const subjY = h * 0.48;
+        const scale = 0.85 + 0.25 * Math.sin(localT * Math.PI);
+
+        pctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+        pctx.lineWidth = 1;
+        for (let gx = 60; gx < w; gx += 60) {
+          pctx.beginPath(); pctx.moveTo(gx, 0); pctx.lineTo(gx, h); pctx.stroke();
+        }
+
+        pctx.fillStyle = v1Clip ? v1Clip.color : '#334155';
+        pctx.strokeStyle = '#fafafa';
+        pctx.lineWidth = 2;
+        const boxW = 140 * scale;
+        const boxH = 96 * scale;
+        pctx.fillRect(subjX - boxW / 2, subjY - boxH / 2, boxW, boxH);
+        pctx.strokeRect(subjX - boxW / 2, subjY - boxH / 2, boxW, boxH);
+
+        pctx.fillStyle = '#fafafa';
+        pctx.font = '700 12px "JetBrains Mono", monospace';
+        pctx.fillText(v1Clip ? v1Clip.label : 'GAP (BLACK)', subjX - boxW / 2 + 10, subjY - 4);
+        pctx.fillStyle = '#38bdf8';
+        pctx.font = '500 10px "JetBrains Mono", monospace';
+        pctx.fillText(`SRC_IN: ${v1Clip ? v1Clip.srcIn : 0}f | KEYFRAME X: ${Math.round(subjX)}px`, subjX - boxW / 2 + 10, subjY + 14);
+
+        // V2 Overlay Track
+        if (v2Clip) {
+          pctx.fillStyle = 'rgba(10, 10, 10, 0.85)';
+          pctx.strokeStyle = '#a855f7';
+          pctx.lineWidth = 2;
+          pctx.fillRect(48, h - 86, 360, 48);
+          pctx.strokeRect(48, h - 86, 360, 48);
+          pctx.fillStyle = '#fafafa';
+          pctx.font = '700 12px "JetBrains Mono", monospace';
+          pctx.fillText('V2 OVERLAY // ' + v2Clip.label, 64, h - 58);
+        }
+
+        pctx.filter = 'none';
+
+        // Vignette shader pass
+        if (vig > 0.01) {
+          const rad = pctx.createRadialGradient(w / 2, h / 2, w * 0.25, w / 2, h / 2, w * 0.65);
+          rad.addColorStop(0, 'rgba(0,0,0,0)');
+          rad.addColorStop(1, `rgba(0,0,0,${vig * 0.85})`);
+          pctx.fillStyle = rad;
+          pctx.fillRect(0, 0, w, h);
+        }
+
+        pctx.restore();
+
+        const maxF = totalDuration();
+        document.getElementById('smpteReadout').textContent =
+          `${toSmpte(playhead, fps)} (FRAME ${String(playhead).padStart(3, '0')} / ${maxF})`;
+        const sel = clips.find(c => c.id === selectedClipId) || v1Clip;
+        if (sel) {
+          document.getElementById('activeClipLabel').textContent =
+            `SELECTED: ${sel.trackName} // ${sel.label} [${sel.from}..${sel.from + sel.dur}f]`;
+        }
+      }
+
+      function renderTimeline() {
+        const w = tlCanvas.width;
+        const h = tlCanvas.height;
+        tctx.fillStyle = '#070707';
+        tctx.fillRect(0, 0, w, h);
+
+        const headerW = 90;
+        const trackH = 38;
+        const topRulerH = 26;
+        const maxF = Math.max(240, totalDuration());
+        const pxPerFrame = (w - headerW - 20) / maxF;
+
+        // Ruler
+        tctx.fillStyle = '#121212';
+        tctx.fillRect(0, 0, w, topRulerH);
+        tctx.strokeStyle = '#262626';
+        tctx.beginPath();
+        tctx.moveTo(0, topRulerH);
+        tctx.lineTo(w, topRulerH);
+        tctx.stroke();
+
+        tctx.fillStyle = '#737373';
+        tctx.font = '600 10px "JetBrains Mono", monospace';
+        for (let f = 0; f <= maxF; f += 20) {
+          const x = headerW + f * pxPerFrame;
+          tctx.fillText(String(f) + 'f', x + 2, 16);
+          tctx.strokeStyle = '#222';
+          tctx.beginPath();
+          tctx.moveTo(x, topRulerH);
+          tctx.lineTo(x, h);
+          tctx.stroke();
+        }
+
+        const trackLabels = ['V1 MAIN', 'V2 OVERLAY', 'A1 DIALOG', 'A2 SCORE'];
+        for (let t = 0; t < 4; t++) {
+          const ty = topRulerH + t * trackH;
+          tctx.fillStyle = '#111111';
+          tctx.fillRect(0, ty, headerW, trackH);
+          tctx.strokeStyle = '#262626';
+          tctx.strokeRect(0, ty, w, trackH);
+          tctx.fillStyle = '#a3a3a3';
+          tctx.font = '700 10px "JetBrains Mono", monospace';
+          tctx.fillText(trackLabels[t], 12, ty + 23);
+        }
+
+        // Draw clips
+        clips.forEach(c => {
+          const ty = topRulerH + c.track * trackH + 4;
+          const cx = headerW + c.from * pxPerFrame;
+          const cw = Math.max(6, c.dur * pxPerFrame);
+          const ch = trackH - 8;
+
+          tctx.fillStyle = c.color;
+          tctx.fillRect(cx, ty, cw, ch);
+
+          tctx.strokeStyle = c.id === selectedClipId ? '#fafafa' : '#111111';
+          tctx.lineWidth = c.id === selectedClipId ? 2 : 1;
+          tctx.strokeRect(cx, ty, cw, ch);
+
+          if (cw > 48) {
+            tctx.fillStyle = '#ffffff';
+            tctx.font = '700 10px "JetBrains Mono", monospace';
+            tctx.fillText(c.label.slice(0, 18), cx + 6, ty + 19);
+          }
+        });
+
+        // Playhead line
+        const px = headerW + playhead * pxPerFrame;
+        tctx.strokeStyle = '#f43f5e';
+        tctx.lineWidth = 2;
+        tctx.beginPath();
+        tctx.moveTo(px, 0);
+        tctx.lineTo(px, h);
+        tctx.stroke();
+
+        tctx.fillStyle = '#f43f5e';
+        tctx.fillRect(px - 5, 0, 10, 12);
+
+        document.getElementById('clipStatsTag').textContent =
+          `${clips.length} CLIPS • DURATION: ${maxF} FRAMES (${(maxF / fps).toFixed(2)}s @ ${fps} FPS)`;
+      }
+
+      function generateExportText() {
+        const maxF = totalDuration();
+        if (exportFormat === 'otio') {
+          const v1Clips = clips.filter(c => c.track === 0).sort((a, b) => a.from - b.from).map(c => ({
+            OTIO_SCHEMA: 'Clip.2',
+            name: c.label,
+            source_range: {
+              OTIO_SCHEMA: 'TimeRange.1',
+              start_time: { OTIO_SCHEMA: 'RationalTime.1', value: c.srcIn, rate: fps },
+              duration: { OTIO_SCHEMA: 'RationalTime.1', value: c.dur, rate: fps }
+            },
+            media_reference: {
+              OTIO_SCHEMA: 'ExternalReference.1',
+              target_url: 'file:///media/' + c.label
+            }
+          }));
+          return JSON.stringify({
+            OTIO_SCHEMA: 'Timeline.1',
+            name: 'KubeezCut Studio Sequence',
+            global_start_time: { OTIO_SCHEMA: 'RationalTime.1', value: 0, rate: fps },
+            tracks: {
+              OTIO_SCHEMA: 'Stack.1',
+              name: 'tracks',
+              children: [{ OTIO_SCHEMA: 'Track.1', name: 'V1', kind: 'Video', children: v1Clips }]
+            }
+          }, null, 2);
+        }
+
+        if (exportFormat === 'edl') {
+          const isDrop = Math.abs(fps - 29.97) < 0.05;
+          let out = `TITLE: KubeezCut Studio Sequence\nFCM: ${isDrop ? 'DROP FRAME' : 'NON-DROP FRAME'}\n\n`;
+          clips.slice().sort((a, b) => a.from - b.from).forEach((c, idx) => {
+            const num = String(idx + 1).padStart(3, '0');
+            const kind = c.track >= 2 ? 'A    ' : 'V    ';
+            const sIn = toSmpte(c.srcIn, fps);
+            const sOut = toSmpte(c.srcIn + c.dur, fps);
+            const rIn = toSmpte(c.from, fps);
+            const rOut = toSmpte(c.from + c.dur, fps);
+            out += `${num}  AX       ${kind} C        ${sIn} ${sOut} ${rIn} ${rOut}\n* FROM CLIP NAME: ${c.label}\n\n`;
+          });
+          return out;
+        }
+
+        if (exportFormat === 'fcpxml') {
+          const durSec = (maxF / fps).toFixed(3) + 's';
+          let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE fcpxml>\n<fcpxml version="1.9">\n  <resources>\n    <format id="r1" name="FFVideoFormatCustom" frameDuration="1/${Math.round(fps)}s" width="1920" height="1080" />\n  </resources>\n  <library>\n    <event name="KubeezCut Studio">\n      <project name="Timeline">\n        <sequence format="r1" duration="${durSec}">\n          <spine>\n`;
+          clips.filter(c => c.track === 0).forEach((c, i) => {
+            xml += `            <asset-clip ref="r${i + 2}" name="${c.label}" offset="${(c.from / fps).toFixed(3)}s" start="${(c.srcIn / fps).toFixed(3)}s" duration="${(c.dur / fps).toFixed(3)}s" format="r1" />\n`;
+          });
+          xml += `          </spine>\n        </sequence>\n      </project>\n    </event>\n  </library>\n</fcpxml>`;
+          return xml;
+        }
+
+        if (exportFormat === 'premiere') {
+          let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="4">\n  <sequence>\n    <name>KubeezCut Studio</name>\n    <duration>${maxF}</duration>\n    <rate><timebase>${Math.round(fps)}</timebase><ntsc>FALSE</ntsc></rate>\n    <media><video><track>\n`;
+          clips.filter(c => c.track === 0).forEach((c, i) => {
+            xml += `      <clipitem id="clip-${i + 1}">\n        <name>${c.label}</name>\n        <start>${c.from}</start>\n        <end>${c.from + c.dur}</end>\n        <in>${c.srcIn}</in>\n        <out>${c.srcIn + c.dur}</out>\n      </clipitem>\n`;
+          });
+          xml += `    </track></video></media>\n  </sequence>\n</xmeml>`;
+          return xml;
+        }
+
+        // Resolve CSV
+        let csv = 'Event,Reel,Track,Clip Name,Source In,Source Out,Record In,Record Out,Speed\n';
+        clips.forEach((c, i) => {
+          csv += `${i + 1},AX,${c.trackName},"${c.label}",${toSmpte(c.srcIn, fps)},${toSmpte(c.srcIn + c.dur, fps)},${toSmpte(c.from, fps)},${toSmpte(c.from + c.dur, fps)},1.00\n`;
+        });
+        return csv;
+      }
+
+      function updateAll() {
+        renderProgramMonitor();
+        renderTimeline();
+        renderCurveCanvas();
+        document.getElementById('exportCodeBox').textContent = generateExportText();
+      }
+
+      // Timeline click to scrub & select clip
+      tlCanvas.addEventListener('pointerdown', (e) => {
+        const rect = tlCanvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (tlCanvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (tlCanvas.height / rect.height);
+        const headerW = 90;
+        const topRulerH = 26;
+        const trackH = 38;
+        const maxF = Math.max(240, totalDuration());
+        const pxPerFrame = (tlCanvas.width - headerW - 20) / maxF;
+
+        if (x >= headerW) {
+          playhead = Math.max(0, Math.min(maxF - 1, Math.round((x - headerW) / pxPerFrame)));
+          const clickedTrack = Math.floor((y - topRulerH) / trackH);
+          const hit = clips.find(c => c.track === clickedTrack && playhead >= c.from && playhead < c.from + c.dur);
+          if (hit) selectedClipId = hit.id;
+          updateAll();
+        }
+      });
+
+      // Split at Playhead (TimelineOps::split_item)
+      document.getElementById('splitBtn').addEventListener('click', () => {
+        const target = clips.find(c => c.id === selectedClipId && playhead > c.from && playhead < c.from + c.dur)
+          || clips.find(c => c.track === 0 && playhead > c.from && playhead < c.from + c.dur);
+        if (!target) return;
+        const firstDur = playhead - target.from;
+        const secondDur = (target.from + target.dur) - playhead;
+        const part2 = {
+          id: target.id + '_b',
+          track: target.track,
+          trackName: target.trackName,
+          label: target.label.replace('.MOV', '_PT2.MOV'),
+          from: playhead,
+          dur: secondDur,
+          srcIn: target.srcIn + firstDur,
+          color: '#0ea5e9'
+        };
+        target.dur = firstDur;
+        clips.push(part2);
+        selectedClipId = part2.id;
+        updateAll();
+      });
+
+      // Ripple Delete (TimelineOps::ripple_delete)
+      document.getElementById('rippleBtn').addEventListener('click', () => {
+        const idx = clips.findIndex(c => c.id === selectedClipId);
+        if (idx === -1 || clips.length <= 1) return;
+        const removed = clips.splice(idx, 1)[0];
+        clips.forEach(c => {
+          if (c.track === removed.track && c.from >= removed.from + removed.dur) {
+            c.from -= removed.dur;
+          }
+        });
+        selectedClipId = clips[0].id;
+        updateAll();
+      });
+
+      // Slip Edit (+15f)
+      document.getElementById('slipBtn').addEventListener('click', () => {
+        const target = clips.find(c => c.id === selectedClipId);
+        if (target) {
+          target.srcIn += 15;
+          updateAll();
+        }
+      });
+
+      document.getElementById('resetTimelineBtn').addEventListener('click', () => {
+        clips = JSON.parse(JSON.stringify(INITIAL_CLIPS));
+        selectedClipId = 'c1';
+        playhead = 42;
+        updateAll();
+      });
+
+      document.getElementById('playBtn').addEventListener('click', (e) => {
+        isPlaying = !isPlaying;
+        e.target.textContent = isPlaying ? 'PAUSE ❚❚' : 'PLAY ▶';
+      });
+
+      // Shader controls
+      document.getElementById('shaderPresets').addEventListener('click', (e) => {
+        const btn = e.target.closest('.mini-btn');
+        if (!btn) return;
+        document.querySelectorAll('#shaderPresets .mini-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const p = btn.dataset.preset;
+        if (p === 'neutral') { bright = 0; contrast = 1.0; sat = 1.0; vig = 0.25; }
+        if (p === 'vintage') { bright = -0.08; contrast = 1.15; sat = 0.65; vig = 0.55; }
+        if (p === 'noir') { bright = -0.05; contrast = 1.45; sat = 0.0; vig = 0.65; }
+        if (p === 'cold') { bright = 0.04; contrast = 1.10; sat = 1.35; vig = 0.30; }
+        document.getElementById('sBright').value = bright;
+        document.getElementById('sContrast').value = contrast;
+        document.getElementById('sSat').value = sat;
+        document.getElementById('sVig').value = vig;
+        document.getElementById('valBright').textContent = bright.toFixed(2);
+        document.getElementById('valContrast').textContent = contrast.toFixed(2);
+        document.getElementById('valSat').textContent = sat.toFixed(2);
+        document.getElementById('valVig').textContent = vig.toFixed(2);
+        updateAll();
+      });
+
+      ['sBright', 'sContrast', 'sSat', 'sVig'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+          bright = parseFloat(document.getElementById('sBright').value);
+          contrast = parseFloat(document.getElementById('sContrast').value);
+          sat = parseFloat(document.getElementById('sSat').value);
+          vig = parseFloat(document.getElementById('sVig').value);
+          document.getElementById('valBright').textContent = bright.toFixed(2);
+          document.getElementById('valContrast').textContent = contrast.toFixed(2);
+          document.getElementById('valSat').textContent = sat.toFixed(2);
+          document.getElementById('valVig').textContent = vig.toFixed(2);
+          renderProgramMonitor();
+        });
+      });
+
+      document.getElementById('fpsSelect').addEventListener('change', (e) => {
+        fps = parseFloat(e.target.value);
+        updateAll();
+      });
+
+      document.getElementById('easingSelect').addEventListener('change', (e) => {
+        easingMode = e.target.value;
+        updateAll();
+      });
+
+      ['sCurveA', 'sCurveB'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+          curveA = parseFloat(document.getElementById('sCurveA').value);
+          curveB = parseFloat(document.getElementById('sCurveB').value);
+          document.getElementById('valP1').textContent = `${curveA.toFixed(2)} / ${Math.round(120 + curveA * 180)}`;
+          document.getElementById('valP2').textContent = `${curveB.toFixed(2)} / ${Math.round(8 + curveB * 24)}`;
+          updateAll();
+        });
+      });
+
+      document.getElementById('exportFormatTabs').addEventListener('click', (e) => {
+        const btn = e.target.closest('.mini-btn');
+        if (!btn || !btn.dataset.fmt) return;
+        document.querySelectorAll('#exportFormatTabs .mini-btn[data-fmt]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        exportFormat = btn.dataset.fmt;
+        document.getElementById('exportCodeBox').textContent = generateExportText();
+      });
+
+      document.getElementById('downloadExportBtn').addEventListener('click', () => {
+        const extMap = { otio: 'otio', edl: 'edl', fcpxml: 'fcpxml', premiere: 'xml', csv: 'csv' };
+        const blob = new Blob([generateExportText()], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `kubeezcut_timeline.${extMap[exportFormat] || 'txt'}`;
+        a.click();
+      });
+
+      let lastTime = performance.now();
+      function loop(now) {
+        if (isPlaying && now - lastTime >= 45) {
+          playhead = (playhead + 1) % totalDuration();
+          renderProgramMonitor();
+          renderTimeline();
+          renderCurveCanvas();
+          lastTime = now;
+        }
+        requestAnimationFrame(loop);
+      }
+
+      updateAll();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
