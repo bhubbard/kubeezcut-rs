@@ -9,7 +9,10 @@ pub mod export;
 pub mod types;
 
 pub use engine::{AudioMixer, EffectsPipeline, KeyframeEvaluator, TimelineOps};
-pub use export::{FcpxmlExport, JsonProject, PremiereExport, RenderConfig, RenderOrchestrator, detect_encoder};
+pub use export::{
+    detect_encoder, FcpxmlExport, JsonProject, OtioExport, PremiereExport, RationalTime,
+    RenderConfig, RenderOrchestrator, TimeRange, TimeTransform,
+};
 pub use types::{
     AnimatableProperty, BezierControlPoints, BlendMode, CropSettings, EasingConfig, EasingType,
     EffectPreset, GpuEffect, ItemEffect, ItemKeyframes, ItemType, Keyframe, Marker, Project,

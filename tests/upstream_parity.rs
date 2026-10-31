@@ -1,6 +1,9 @@
 use kubeezcut::{
     engine::{AudioMixer, EffectsPipeline, KeyframeEvaluator, TimelineOps},
-    export::{FcpxmlExport, JsonProject, PremiereExport, RenderConfig, RenderOrchestrator},
+    export::{
+        FcpxmlExport, JsonProject, OtioExport, PremiereExport, RationalTime, RenderConfig,
+        RenderOrchestrator, TimeRange, TimeTransform,
+    },
     types::{
         BezierControlPoints, EasingConfig, EasingType, EffectPreset, ItemEffect, Keyframe, Project,
         ProjectResolution, SpringParameters, TimelineItem, Track, Transition, TransitionKind,
@@ -239,4 +242,41 @@ fn test_upstream_headless_render_pipeline() {
     assert_eq!(cmd[0], "ffmpeg");
     assert!(cmd.iter().any(|c| c.contains("concat=n=1")));
     assert!(cmd.iter().any(|c| c == "+faststart"));
+}
+
+#[test]
+fn test_upstream_otio_edl_and_rational_time() {
+    let rt = RationalTime::new(180.0, 60.0);
+    assert_eq!(rt.to_seconds(), 3.0);
+    assert_eq!(rt.to_smpte_timecode(false), "00:00:03:00");
+
+    let tr = TimeRange::new(RationalTime::new(0.0, 24.0), RationalTime::new(48.0, 24.0));
+    assert_eq!(tr.end_time_exclusive().to_frames(), 48);
+
+    let xform = TimeTransform::new(RationalTime::new(24.0, 24.0), 2.0, 24.0);
+    let shifted = xform.applied_to_time(RationalTime::new(10.0, 24.0));
+    assert_eq!(shifted.to_frames(), 44);
+
+    let mut proj = Project::new("p_otio", "ASWF OpenTimelineIO Sequence");
+    proj.timeline
+        .tracks
+        .push(Track::new_video("v1", "Video 1", 0));
+    proj.timeline.items.push(TimelineItem::new_video(
+        "c1",
+        "v1",
+        0,
+        90,
+        "/media/scene01.mov",
+    ));
+
+    let otio = OtioExport::export_otio_json(&proj);
+    assert!(otio.contains("\"OTIO_SCHEMA\": \"Timeline.1\""));
+    assert!(otio.contains("\"OTIO_SCHEMA\": \"Clip.2\""));
+
+    let edl = OtioExport::export_cmx3600_edl(&proj);
+    assert!(edl.contains("TITLE: ASWF OpenTimelineIO Sequence"));
+    assert!(edl.contains("* FROM CLIP NAME: Video Clip"));
+
+    let csv = OtioExport::export_resolve_csv(&proj);
+    assert!(csv.contains("Event,Reel,Track,Clip Name"));
 }

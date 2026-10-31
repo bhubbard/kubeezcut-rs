@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use kubeezcut::{
-    export::{FcpxmlExport, JsonProject, PremiereExport, RenderConfig, RenderOrchestrator},
+    export::{
+        FcpxmlExport, JsonProject, OtioExport, PremiereExport, RenderConfig, RenderOrchestrator,
+    },
     types::{Project, ProjectResolution, Track},
 };
 use std::fs;
@@ -156,7 +158,13 @@ fn main() -> Result<()> {
             let (rendered, default_ext) = match fmt_lower.as_str() {
                 "fcpxml" => (FcpxmlExport::export(&proj), "fcpxml"),
                 "premiere" | "xml" => (PremiereExport::export(&proj), "xml"),
-                other => anyhow::bail!("Unsupported export format '{}'. Supported: fcpxml, premiere", other),
+                "otio" => (OtioExport::export_otio_json(&proj), "otio"),
+                "edl" | "cmx3600" => (OtioExport::export_cmx3600_edl(&proj), "edl"),
+                "resolve-csv" | "csv" => (OtioExport::export_resolve_csv(&proj), "csv"),
+                other => anyhow::bail!(
+                    "Unsupported export format '{}'. Supported: otio, edl, fcpxml, premiere, resolve-csv",
+                    other
+                ),
             };
 
             let out_path = output.unwrap_or_else(|| {
@@ -177,8 +185,10 @@ fn main() -> Result<()> {
             dry_run,
         } => {
             let proj = JsonProject::load(&project)?;
-            let mut cfg = RenderConfig::default();
-            cfg.output_path = output.clone();
+            let cfg = RenderConfig {
+                output_path: output.clone(),
+                ..RenderConfig::default()
+            };
 
             let cmd = RenderOrchestrator::build_ffmpeg_command(&proj, &cfg)?;
 
