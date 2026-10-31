@@ -10,8 +10,10 @@ pub mod types;
 
 pub use engine::{AudioMixer, EffectsPipeline, KeyframeEvaluator, TimelineOps};
 pub use export::{
-    detect_encoder, FcpxmlExport, JsonProject, OtioExport, PremiereExport, RationalTime,
-    RenderConfig, RenderOrchestrator, TimeRange, TimeTransform,
+    detect_encoder, AafCompositionPackage, AdForgeTimeline, FcpxmlExport, JsonProject,
+    MatchCutCandidate, MatchCutEngine, MetricProjectionHead, OtioExport, PremiereExport,
+    RationalTime, RenderConfig, RenderOrchestrator, Sb37ComplianceEngine, Sb37DisclaimerCue,
+    ShotEmbedding, TakeCandidate, TimeRange, TimeTransform,
 };
 pub use types::{
     AnimatableProperty, BezierControlPoints, BlendMode, CropSettings, EasingConfig, EasingType,
